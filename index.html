@@ -282,10 +282,6 @@
                               transition:"transform 0.1s",
                               transform: isTip ? "scale(1.1)" : "scale(1)",
                             }}>
-                            <span style={{opacity:0.7,color:GRP_COLORS[item.g],
-                              fontSize:10,fontWeight:800,
-                              textShadow: pc.bg==="#eab308" ? "none" : "0 0 2px rgba(0,0,0,0.5)",
-                            }}>{GRP_NAMES[item.g]}</span>
                             <span>{item.l}</span>
                             <span style={{opacity:0.8}}>{item.d<0 ? `-${Math.abs(item.d)}` : item.d}</span>
 
