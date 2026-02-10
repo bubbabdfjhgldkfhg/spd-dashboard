@@ -135,6 +135,7 @@
     function Dashboard({ data: DATA }) {
       const [sel, setSel] = useState(null);
       const [tipKey, setTipKey] = useState(null);
+      const [showAll, setShowAll] = useState(null);
 
       const TODAY = useMemo(() => new Date(DATA.referenceDate + "T00:00:00"), [DATA]);
 
@@ -382,6 +383,58 @@
                               background:"#7c3aed12",color:"#a78bfa",border:"1px solid #7c3aed33",
                               fontFamily:mono,fontWeight:600}}>{f}</span>
                           ))}
+                        </div>
+                      )}
+
+                      <div style={{display:"flex",justifyContent:"center",marginTop:12}}>
+                        <button onClick={(e) => { e.stopPropagation(); setShowAll(showAll === p.name ? null : p.name); }}
+                          style={{
+                            background:"#1f2937",border:"1px solid #374151",borderRadius:4,
+                            color:"#6b7280",fontSize:11,fontFamily:mono,padding:"5px 14px",cursor:"pointer",
+                            fontWeight:700,letterSpacing:"0.05em",transition:"all 0.15s",
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background="#374151"; e.currentTarget.style.color="#9ca3af"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background="#1f2937"; e.currentTarget.style.color="#6b7280"; }}
+                        >{showAll === p.name ? "HIDE ALL TRAININGS" : "VIEW ALL TRAININGS"}</button>
+                      </div>
+
+                      {showAll === p.name && (
+                        <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #1f2937"}}>
+                          {[0,1,2].map(gi => {
+                            const grpCols = COLS.filter(c => c.g === gi);
+                            if (grpCols.length === 0) return null;
+                            return (
+                              <div key={gi} style={{marginBottom: gi < 2 ? 14 : 0}}>
+                                <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:GRP_COLORS[gi],
+                                  fontFamily:mono,marginBottom:6}}>
+                                  {GRP_LABELS[gi]}
+                                </div>
+                                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))",gap:6}}>
+                                  {grpCols.map(c => {
+                                    const val = p.t[c.k];
+                                    const d = daysDiff(val);
+                                    const noDate = !val || val === "n/a" || val === "\u2014";
+                                    let dotColor = "#22c55e";
+                                    if (noDate) dotColor = "#374151";
+                                    else if (d < 0) dotColor = "#dc2626";
+                                    else if (d <= 30) dotColor = "#f97316";
+                                    else if (d <= 60) dotColor = "#eab308";
+                                    return (
+                                      <div key={c.k} style={{
+                                        display:"flex",alignItems:"center",justifyContent:"space-between",
+                                        padding:"5px 10px",background:"#0f172a",borderRadius:4,
+                                        borderLeft:`2px solid ${dotColor}`,
+                                      }}>
+                                        <span style={{fontSize:12,fontFamily:mono,color:"#9ca3af",fontWeight:600}}>{c.f}</span>
+                                        <span style={{fontSize:12,fontFamily:mono,color: noDate ? "#374151" : d <= 60 ? dotColor : "#6b7280",
+                                          fontWeight:700}}>{noDate ? "\u2014" : val}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
