@@ -142,7 +142,7 @@
       const GRP_COLORS = useMemo(() => DATA.groups.map(g => g.color), [DATA]);
       const GRP_NAMES = useMemo(() => DATA.groups.map(g => g.name), [DATA]);
       const GRP_LABELS = useMemo(() => DATA.groups.map(g => g.label), [DATA]);
-      const PEOPLE = useMemo(() => DATA.people.map(p => ({ name:p.name, t:p.training, flags:p.flags, secSusp:p.secSusp, srp:p.srp })), [DATA]);
+      const PEOPLE = useMemo(() => DATA.people.map(p => ({ name:p.name, t:p.training, flags:p.flags, appointments:p.appointments||[], secSusp:p.secSusp, srp:p.srp })), [DATA]);
 
       const daysDiff = useCallback((ds) => {
         if (!ds || ds === "n/a" || ds === "—") return null;
@@ -302,18 +302,18 @@
                     </div>
 
                     <div style={{display:"flex",gap:4,flexWrap:"wrap",maxWidth:420,justifyContent:"flex-end"}}>
-                      {p.flags.map((f,i) => {
-                        const isAppt = f.toLowerCase().includes("appt");
-                        return (
-                          <span key={i} style={{fontSize:11,padding:"3px 8px",borderRadius:3,
-                            background: isAppt ? "#0ea5e918" : "#7c3aed12",
-                            color: isAppt ? "#22d3ee" : "#a78bfa",
-                            border: isAppt ? "1px solid #0ea5e944" : "1px solid #7c3aed33",
-                            fontFamily:mono,fontWeight:600,lineHeight:"18px",
-                            ...(isAppt ? {boxShadow:"0 0 6px #0ea5e922"} : {}),
-                          }}>{isAppt ? "\u{1F4C5} " : ""}{f}</span>
-                        );
-                      })}
+                      {p.appointments.map((a,i) => (
+                        <span key={`appt-${i}`} style={{fontSize:11,padding:"3px 8px",borderRadius:3,
+                          background:"#0ea5e918",color:"#22d3ee",border:"1px solid #0ea5e944",
+                          fontFamily:mono,fontWeight:600,lineHeight:"18px",
+                          boxShadow:"0 0 6px #0ea5e922",
+                        }}>{"\u{1F4C5}"} {a.type} appt {a.date}</span>
+                      ))}
+                      {p.flags.map((f,i) => (
+                        <span key={i} style={{fontSize:11,padding:"3px 8px",borderRadius:3,
+                          background:"#7c3aed12",color:"#a78bfa",border:"1px solid #7c3aed33",
+                          fontFamily:mono,fontWeight:600,lineHeight:"18px"}}>{f}</span>
+                      ))}
                     </div>
                   </div>
 
@@ -361,21 +361,21 @@
                         <div style={{fontSize:13,color:"#374151",fontFamily:mono,fontStyle:"italic"}}>No training items due within 90 days</div>
                       )}
 
-                      {p.flags.length > 0 && (
+                      {(p.flags.length > 0 || p.appointments.length > 0) && (
                         <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #1f2937",
                           display:"flex",gap:6,flexWrap:"wrap"}}>
-                          {p.flags.map((f,i) => {
-                            const isAppt = f.toLowerCase().includes("appt");
-                            return (
-                              <span key={i} style={{fontSize:12,padding:"4px 10px",borderRadius:4,
-                                background: isAppt ? "#0ea5e918" : "#7c3aed12",
-                                color: isAppt ? "#22d3ee" : "#a78bfa",
-                                border: isAppt ? "1px solid #0ea5e944" : "1px solid #7c3aed33",
-                                fontFamily:mono,fontWeight:600,
-                                ...(isAppt ? {boxShadow:"0 0 6px #0ea5e922"} : {}),
-                              }}>{isAppt ? "\u{1F4C5} " : ""}{f}</span>
-                            );
-                          })}
+                          {p.appointments.map((a,i) => (
+                            <span key={`appt-${i}`} style={{fontSize:12,padding:"4px 10px",borderRadius:4,
+                              background:"#0ea5e918",color:"#22d3ee",border:"1px solid #0ea5e944",
+                              fontFamily:mono,fontWeight:600,
+                              boxShadow:"0 0 6px #0ea5e922",
+                            }}>{"\u{1F4C5}"} {a.type} appt {a.date}</span>
+                          ))}
+                          {p.flags.map((f,i) => (
+                            <span key={i} style={{fontSize:12,padding:"4px 10px",borderRadius:4,
+                              background:"#7c3aed12",color:"#a78bfa",border:"1px solid #7c3aed33",
+                              fontFamily:mono,fontWeight:600}}>{f}</span>
+                          ))}
                         </div>
                       )}
                     </div>
