@@ -73,7 +73,8 @@
         throw new Error(`HTTP ${res.status}`);
       }
       const json = await res.json();
-      return JSON.parse(atob(json.content));
+      const bytes = Uint8Array.from(atob(json.content), c => c.charCodeAt(0));
+      return JSON.parse(new TextDecoder().decode(bytes));
     }
 
     function AuthScreen({ onAuth }) {
