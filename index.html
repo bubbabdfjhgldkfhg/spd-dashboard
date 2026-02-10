@@ -153,14 +153,13 @@
       function pillColor(d) {
         if (d < 0) return { bg:"#dc2626", tx:"#fff" };
         if (d <= 30) return { bg:"#f97316", tx:"#fff" };
-        if (d <= 60) return { bg:"#eab308", tx:"#1a1a1a" };
-        return { bg:"#3b82f6", tx:"#fff" };
+        return { bg:"#eab308", tx:"#1a1a1a" };
       }
 
       const getActionable = useCallback((p) => {
         return COLS.map(c => {
           const d = daysDiff(p.t[c.k]);
-          if (d === null || d > 90) return null;
+          if (d === null || d > 60) return null;
           return { ...c, d, due: p.t[c.k] };
         }).filter(Boolean);
       }, [COLS, daysDiff]);
@@ -184,8 +183,7 @@
       const ovTotal = allD.filter(d=>d<0).length;
       const w30 = allD.filter(d=>d>=0&&d<=30).length;
       const w60 = allD.filter(d=>d>30&&d<=60).length;
-      const w90 = allD.filter(d=>d>60&&d<=90).length;
-      const green = allD.filter(d=>d>90).length;
+      const green = allD.filter(d=>d>60).length;
 
       const handleLogout = () => {
         localStorage.removeItem(STORAGE_KEY);
@@ -202,7 +200,7 @@
               </div>
               <div style={{display:"flex",gap:10,alignItems:"center"}}>
                 <div style={{display:"flex",gap:12,fontSize:12,fontFamily:mono}}>
-                  {[{c:"#dc2626",l:`OVERDUE (${ovTotal})`},{c:"#f97316",l:`<30D (${w30})`},{c:"#eab308",l:`31-60D (${w60})`},{c:"#3b82f6",l:`61-90D (${w90})`}].map(x=>
+                  {[{c:"#dc2626",l:`OVERDUE (${ovTotal})`},{c:"#f97316",l:`<30D (${w30})`},{c:"#eab308",l:`31-60D (${w60})`}].map(x=>
                     <span key={x.l} style={{display:"flex",alignItems:"center",gap:4}}>
                       <span style={{width:10,height:10,borderRadius:2,background:x.c}} />
                       <span style={{color:"#9ca3af"}}>{x.l}</span>
@@ -322,7 +320,7 @@
                         const grpItems = COLS.filter(c => c.g===gi).map(c => {
                           const d = daysDiff(p.t[c.k]);
                           return { ...c, d, due: p.t[c.k] };
-                        }).filter(x => x.d !== null && x.d <= 90);
+                        }).filter(x => x.d !== null && x.d <= 60);
                         if (grpItems.length === 0) return null;
                         return (
                           <div key={gi} style={{marginBottom: gi<2 ? 12 : 0}}>
@@ -356,7 +354,7 @@
                       })}
 
                       {items.length === 0 && (
-                        <div style={{fontSize:13,color:"#374151",fontFamily:mono,fontStyle:"italic"}}>No training items due within 90 days</div>
+                        <div style={{fontSize:13,color:"#374151",fontFamily:mono,fontStyle:"italic"}}>No training items due within 60 days</div>
                       )}
 
                       {(p.flags.length > 0 || p.appointments.length > 0) && (
@@ -402,7 +400,7 @@
               </div>
               <div style={{display:"flex",gap:20,fontSize:11,color:"#374151",fontFamily:mono,marginTop:8,paddingTop:8,borderTop:"1px solid #1f2937"}}>
                 <span>16 training items tracked per person</span>
-                <span>Items &gt;90 days out are hidden</span>
+                <span>Items &gt;60 days out are hidden</span>
                 <span>Hover pill for details, click row to expand</span>
               </div>
             </div>
