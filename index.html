@@ -169,8 +169,18 @@
       }, [COLS, daysDiff]);
 
       const totalScore = useCallback((p) => {
-        return overdueCount(p) + p.flags.length + getActionable(p).length;
-      }, [overdueCount, getActionable]);
+        let score = 0;
+        COLS.forEach(c => {
+          const d = daysDiff(p.t[c.k]);
+          if (d === null || d > 60) return;
+          if (d < 0) score += 100 + Math.abs(d);
+          else if (d <= 30) score += 30 + (30 - d);
+          else score += 5 + (60 - d);
+        });
+        score += p.flags.length * 10;
+        score += p.appointments.length * 5;
+        return score;
+      }, [COLS, daysDiff]);
 
       const sorted = useMemo(() =>
         [...PEOPLE].sort((a,b) => totalScore(b) - totalScore(a)),
