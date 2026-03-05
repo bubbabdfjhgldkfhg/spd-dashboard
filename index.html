@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPD Dashboard</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { margin: 0; }
+    .auth-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: #0a0e1a; display: flex; align-items: center; justify-content: center;
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+    }
+    .auth-box {
+      background: #111827; border: 1px solid #1f2937; border-radius: 12px;
+      padding: 32px; max-width: 460px; width: 90%; color: #e5e7eb;
+    }
+    .auth-box h2 { margin: 0 0 4px; font-size: 18px; color: #f9fafb; }
+    .auth-box .subtitle { font-size: 10px; color: #6b7280; letter-spacing: 0.15em;
+      font-family: 'JetBrains Mono','Courier New',monospace; font-weight: 700; margin-bottom: 16px; }
+    .auth-box label { display: block; font-size: 12px; color: #9ca3af; margin-bottom: 6px; }
+    .auth-box input {
+      width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 6px;
+      border: 1px solid #374151; background: #1f2937; color: #e5e7eb;
+      font-family: 'JetBrains Mono','Courier New',monospace; font-size: 13px;
+      outline: none; transition: border-color 0.2s;
+    }
+    .auth-box input:focus { border-color: #3b82f6; }
+    .auth-box .hint {
+      font-size: 10px; color: #4b5563; margin-top: 8px; line-height: 1.5;
+      font-family: 'JetBrains Mono','Courier New',monospace;
+    }
+    .auth-box .hint code {
+      background: #1f2937; padding: 1px 5px; border-radius: 3px; color: #6b7280;
+    }
+    .auth-box button {
+      margin-top: 16px; width: 100%; padding: 10px; border: none; border-radius: 6px;
+      background: #3b82f6; color: #fff; font-weight: 700; font-size: 13px;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .auth-box button:hover { background: #2563eb; }
+    .auth-box button:disabled { background: #1f2937; color: #4b5563; cursor: default; }
+    .auth-box .error { color: #f87171; font-size: 11px; margin-top: 8px;
+      font-family: 'JetBrains Mono','Courier New',monospace; }
+    .loading-overlay {
+      position: fixed; inset: 0; z-index: 999;
+      background: #0a0e1a; display: flex; align-items: center; justify-content: center;
+      color: #6b7280; font-family: 'JetBrains Mono','Courier New',monospace; font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo, useEffect, useCallback } = React;
+
+    const STORAGE_KEY = "spd_gh_token";
+    const REPO_OWNER = "bubbabdfjhgldkfhg";
+    const REPO_NAME = "Work-Automation";
+    const DATA_PATH = "spd_data.json";
+
+    async function fetchData(token) {
+      const res = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_PATH}`,
+        { headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json" } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) throw new Error("AUTH");
+        if (res.status === 404) throw new Error("NOT_FOUND");
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      const bytes = Uint8Array.from(atob(json.content), c => c.charCodeAt(0));
+      return JSON.parse(new TextDecoder().decode(bytes));
+    }
+
+    function AuthScreen({ onAuth }) {
+      const [token, setToken] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        const t = token.trim();
+        if (!t) return;
+        setLoading(true);
+        setError(null);
+        try {
+          const data = await fetchData(t);
+          localStorage.setItem(STORAGE_KEY, t);
+          onAuth(data);
+        } catch (err) {
+          if (err.message === "AUTH") setError("Invalid or expired token. Check permissions.");
+          else if (err.message === "NOT_FOUND") setError("Token works but data file not found in repo.");
+          else setError("Connection failed: " + err.message);
+        }
+        setLoading(false);
+      };
+
+      return (
+        <div className="auth-overlay">
+          <form className="auth-box" onSubmit={handleSubmit}>
+            <div className="subtitle">UNIT READINESS</div>
+            <h2>Dashboard Access</h2>
+            <p style={{fontSize:12,color:"#6b7280",margin:"8px 0 20px"}}>
+              Enter a GitHub Personal Access Token with <strong style={{color:"#9ca3af"}}>repo</strong> scope
+              to load personnel data from the private repository.
+            </p>
+            <label>GitHub Personal Access Token</label>
+            <input
+              type="password"
+              value={token}
+              onChange={e => setToken(e.target.value)}
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              autoFocus
+              spellCheck="false"
+              autoComplete="off"
+            />
+            <div className="hint">
+              Generate at <code>GitHub → Settings → Developer settings → Personal access tokens</code><br />
+              Required scope: <code>repo</code> (full control of private repositories)
+            </div>
+            {error && <div className="error">{error}</div>}
+            <button type="submit" disabled={loading || !token.trim()}>
+              {loading ? "Verifying..." : "Connect"}
+            </button>
+          </form>
+        </div>
+      );
+    }
+
+    function Dashboard({ data: DATA }) {
+      const [sel, setSel] = useState(null);
+      const [tipKey, setTipKey] = useState(null);
+      const [showAll, setShowAll] = useState(null);
+
+      const TODAY = useMemo(() => new Date(DATA.referenceDate + "T00:00:00"), [DATA]);
+
+      const COLS = useMemo(() => DATA.columns.map(c => ({ k:c.key, l:c.abbrev, f:c.fullName, g:c.group })), [DATA]);
+      const GRP_COLORS = useMemo(() => DATA.groups.map(g => g.color), [DATA]);
+      const GRP_NAMES = useMemo(() => DATA.groups.map(g => g.name), [DATA]);
+      const GRP_LABELS = useMemo(() => DATA.groups.map(g => g.label), [DATA]);
+      const PEOPLE = useMemo(() => DATA.people.map(p => ({ name:p.name, t:p.training, flags:p.flags, appointments:p.appointments||[], secSusp:p.secSusp, srp:p.srp })), [DATA]);
+
+      const daysDiff = useCallback((ds) => {
+        if (!ds || ds === "n/a" || ds === "—") return null;
+        const p = ds.split("/");
+        return Math.ceil((new Date(+p[2], +p[0]-1, +p[1]) - TODAY) / 864e5);
+      }, [TODAY]);
+
+      function pillColor(d) {
+        if (d < 0) return { bg:"#dc2626", tx:"#fff" };
+        if (d <= 30) return { bg:"#f97316", tx:"#fff" };
+        return { bg:"#eab308", tx:"#1a1a1a" };
+      }
+
+      const getActionable = useCallback((p) => {
+        return COLS.map(c => {
+          const d = daysDiff(p.t[c.k]);
+          if (d === null || d > 60) return null;
+          return { ...c, d, due: p.t[c.k] };
+        }).filter(Boolean);
+      }, [COLS, daysDiff]);
+
+      const overdueCount = useCallback((p) => {
+        return COLS.reduce((n,c) => { const d=daysDiff(p.t[c.k]); return d!==null && d<0 ? n+1 : n; }, 0);
+      }, [COLS, daysDiff]);
+
+      const totalScore = useCallback((p) => {
+        let score = 0;
+        COLS.forEach(c => {
+          const d = daysDiff(p.t[c.k]);
+          if (d === null || d > 60) return;
+          if (d < 0) score += 100 + Math.abs(d);
+          else if (d <= 30) score += 30 + (30 - d);
+          else score += 5 + (60 - d);
+        });
+        score += p.flags.length * 10;
+        score += p.appointments.length * 5;
+        return score;
+      }, [COLS, daysDiff]);
+
+      const sorted = useMemo(() =>
+        [...PEOPLE].sort((a,b) => totalScore(b) - totalScore(a)),
+      [PEOPLE, totalScore]);
+
+      const mono = "'JetBrains Mono','Courier New',monospace";
+
+      const allD = [];
+      PEOPLE.forEach(p => COLS.forEach(c => { const d=daysDiff(p.t[c.k]); if(d!==null) allD.push(d); }));
+      const ovTotal = allD.filter(d=>d<0).length;
+      const w30 = allD.filter(d=>d>=0&&d<=30).length;
+      const w60 = allD.filter(d=>d>30&&d<=60).length;
+      const green = allD.filter(d=>d>60).length;
+
+      const handleLogout = () => {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      };
+
+      return (
+        <div style={{minHeight:"100vh",background:"#0a0e1a",color:"#e5e7eb",fontFamily:"'Segoe UI',-apple-system,sans-serif"}}>
+          <div style={{background:"#111827",borderBottom:"1px solid #1f2937",padding:"18px 32px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,letterSpacing:"0.15em",color:"#6b7280",fontFamily:mono}}>UNIT READINESS</div>
+                <div style={{fontSize:24,fontWeight:800,color:"#f9fafb",marginTop:2}}>Action Items Dashboard</div>
+              </div>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <div style={{display:"flex",gap:12,fontSize:12,fontFamily:mono}}>
+                  {[{c:"#dc2626",l:`OVERDUE (${ovTotal})`},{c:"#f97316",l:`<30D (${w30})`},{c:"#eab308",l:`31-60D (${w60})`}].map(x=>
+                    <span key={x.l} style={{display:"flex",alignItems:"center",gap:4}}>
+                      <span style={{width:10,height:10,borderRadius:2,background:x.c}} />
+                      <span style={{color:"#9ca3af"}}>{x.l}</span>
+                    </span>
+                  )}
+                  <span style={{display:"flex",alignItems:"center",gap:4}}>
+                    <span style={{width:10,height:10,borderRadius:2,background:"#0a0e1a",border:"1px solid #374151"}} />
+                    <span style={{color:"#4b5563"}}>{green} OK</span>
+                  </span>
+                </div>
+                <div style={{fontSize:12,color:"#4b5563",fontFamily:mono,borderLeft:"1px solid #1f2937",paddingLeft:12}}>
+                  {TODAY.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}).toUpperCase()}
+                </div>
+                <button onClick={handleLogout} style={{
+                  background:"transparent",border:"1px solid #1f2937",borderRadius:4,
+                  color:"#4b5563",fontSize:11,fontFamily:mono,padding:"4px 10px",cursor:"pointer",
+                  fontWeight:700,letterSpacing:"0.05em",
+                }} title="Clear stored token and re-authenticate">LOGOUT</button>
+              </div>
+            </div>
+          </div>
+
+          <div style={{padding:"20px 32px"}}>
+            {sorted.map((p,ri) => {
+              const items = getActionable(p);
+              const oc = overdueCount(p);
+              const isOpen = sel === p.name;
+              const allClear = items.length === 0 && p.flags.length === 0;
+
+              return (
+                <div key={p.name} style={{marginBottom:6}}>
+                  <div
+                    onClick={() => setSel(isOpen ? null : p.name)}
+                    style={{
+                      display:"flex",alignItems:"center",gap:14,
+                      padding:"10px 16px",borderRadius:6,cursor:"pointer",
+                      background: isOpen ? "#1e293b" : "transparent",
+                      borderLeft: oc>0 ? "3px solid #dc2626" : p.secSusp ? "3px solid #a855f7" : "3px solid transparent",
+                      transition:"background 0.1s",
+                    }}
+                    onMouseEnter={e => { if(!isOpen) e.currentTarget.style.background="#111827"; }}
+                    onMouseLeave={e => { if(!isOpen) e.currentTarget.style.background="transparent"; }}
+                  >
+                    <div style={{width:220,flexShrink:0,display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:15,fontWeight:700,color: oc>0 ? "#fca5a5" : allClear ? "#4b5563" : "#d1d5db"}}>{p.name}</span>
+                      {p.srp && <span style={{fontSize:10,padding:"2px 6px",borderRadius:3,
+                        background:p.srp.type==="RET"?"#7c3aed22":"#0ea5e922",
+                        color:p.srp.type==="RET"?"#c4b5fd":"#67e8f9",
+                        border:`1px solid ${p.srp.type==="RET"?"#7c3aed44":"#0ea5e944"}`,
+                        fontFamily:mono,fontWeight:700}}>{p.srp.type} {p.srp.date}</span>}
+                    </div>
+
+                    <div style={{flex:1,display:"flex",flexWrap:"wrap",gap:5,alignItems:"center"}}>
+                      {items.map(item => {
+                        const pc = pillColor(item.d);
+                        const key = `${p.name}-${item.k}`;
+                        const isTip = tipKey === key;
+                        return (
+                          <span key={item.k}
+                            onMouseEnter={(e) => { e.stopPropagation(); setTipKey(key); }}
+                            onMouseLeave={() => setTipKey(null)}
+                            style={{
+                              position:"relative",display:"inline-flex",alignItems:"center",gap:4,
+                              padding:"3px 8px",borderRadius:4,
+                              background:pc.bg,color:pc.tx,
+                              fontSize:13,fontWeight:700,fontFamily:mono,
+                              cursor:"default",
+                              transition:"transform 0.1s",
+                              transform: isTip ? "scale(1.1)" : "scale(1)",
+                            }}>
+                            <span>{item.l}</span>
+                            <span style={{opacity:0.8}}>{item.d<0 ? `-${Math.abs(item.d)}` : item.d}</span>
+
+                            {isTip && (
+                              <div style={{
+                                position:"absolute",bottom:"110%",left:"50%",transform:"translateX(-50%)",
+                                background:"#1e293b",border:"1px solid #374151",borderRadius:6,
+                                padding:"8px 12px",fontSize:12,color:"#e5e7eb",fontFamily:mono,
+                                whiteSpace:"nowrap",zIndex:20,pointerEvents:"none",
+                                boxShadow:"0 4px 16px rgba(0,0,0,0.6)",
+                              }}>
+                                <div style={{fontWeight:700,color:GRP_COLORS[item.g]}}>{item.f}</div>
+                                <div style={{color:"#9ca3af"}}>Due: {item.due}</div>
+                                <div>{item.d<0 ? `${Math.abs(item.d)} days overdue` : `${item.d} days remaining`}</div>
+                              </div>
+                            )}
+                          </span>
+                        );
+                      })}
+                      {allClear && <span style={{fontSize:13,color:"#374151",fontFamily:mono,fontStyle:"italic"}}>all current</span>}
+                    </div>
+
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap",maxWidth:420,justifyContent:"flex-end"}}>
+                      {p.appointments.map((a,i) => (
+                        <span key={`appt-${i}`} style={{fontSize:11,padding:"3px 8px",borderRadius:3,
+                          background:"#0ea5e918",color:"#22d3ee",border:"1px solid #0ea5e944",
+                          fontFamily:mono,fontWeight:600,lineHeight:"18px",
+                          boxShadow:"0 0 6px #0ea5e922",
+                        }}>{"\u{1F4C5}"} {a.type} appt {a.date}</span>
+                      ))}
+                      {p.flags.map((f,i) => (
+                        <span key={i} style={{fontSize:11,padding:"3px 8px",borderRadius:3,
+                          background:"#7c3aed12",color:"#a78bfa",border:"1px solid #7c3aed33",
+                          fontFamily:mono,fontWeight:600,lineHeight:"18px"}}>{f}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {isOpen && (
+                    <div style={{margin:"4px 0 8px 19px",padding:"14px 18px",
+                      background:"#111827",borderRadius:6,border:"1px solid #1f2937"}}>
+                      {[0,1,2].map(gi => {
+                        const grpItems = COLS.filter(c => c.g===gi).map(c => {
+                          const d = daysDiff(p.t[c.k]);
+                          return { ...c, d, due: p.t[c.k] };
+                        }).filter(x => x.d !== null && x.d <= 60);
+                        if (grpItems.length === 0) return null;
+                        return (
+                          <div key={gi} style={{marginBottom: gi<2 ? 12 : 0}}>
+                            <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:GRP_COLORS[gi],
+                              fontFamily:mono,marginBottom:6}}>
+                              {GRP_LABELS[gi]}
+                            </div>
+                            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                              {grpItems.map(item => {
+                                const pc = pillColor(item.d);
+                                return (
+                                  <div key={item.k} style={{
+                                    display:"flex",alignItems:"center",gap:10,
+                                    padding:"8px 14px",background:"#1f2937",borderRadius:5,
+                                    borderLeft:`3px solid ${pc.bg}`,minWidth:220,
+                                  }}>
+                                    <div style={{flex:1}}>
+                                      <div style={{fontSize:13,color:GRP_COLORS[item.g],fontWeight:700,fontFamily:mono}}>{item.f}</div>
+                                      <div style={{fontSize:12,color:"#6b7280",fontFamily:mono}}>{item.due}</div>
+                                    </div>
+                                    <span style={{
+                                      fontSize:13,fontWeight:700,fontFamily:mono,
+                                      padding:"3px 8px",borderRadius:4,background:pc.bg,color:pc.tx,
+                                    }}>{item.d<0 ? `${Math.abs(item.d)}d over` : `${item.d}d`}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {items.length === 0 && (
+                        <div style={{fontSize:13,color:"#374151",fontFamily:mono,fontStyle:"italic"}}>No training items due within 60 days</div>
+                      )}
+
+                      {(p.flags.length > 0 || p.appointments.length > 0) && (
+                        <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #1f2937",
+                          display:"flex",gap:6,flexWrap:"wrap"}}>
+                          {p.appointments.map((a,i) => (
+                            <span key={`appt-${i}`} style={{fontSize:12,padding:"4px 10px",borderRadius:4,
+                              background:"#0ea5e918",color:"#22d3ee",border:"1px solid #0ea5e944",
+                              fontFamily:mono,fontWeight:600,
+                              boxShadow:"0 0 6px #0ea5e922",
+                            }}>{"\u{1F4C5}"} {a.type} appt {a.date}</span>
+                          ))}
+                          {p.flags.map((f,i) => (
+                            <span key={i} style={{fontSize:12,padding:"4px 10px",borderRadius:4,
+                              background:"#7c3aed12",color:"#a78bfa",border:"1px solid #7c3aed33",
+                              fontFamily:mono,fontWeight:600}}>{f}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div style={{display:"flex",justifyContent:"center",marginTop:12}}>
+                        <button onClick={(e) => { e.stopPropagation(); setShowAll(showAll === p.name ? null : p.name); }}
+                          style={{
+                            background:"#1f2937",border:"1px solid #374151",borderRadius:4,
+                            color:"#6b7280",fontSize:11,fontFamily:mono,padding:"5px 14px",cursor:"pointer",
+                            fontWeight:700,letterSpacing:"0.05em",transition:"all 0.15s",
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background="#374151"; e.currentTarget.style.color="#9ca3af"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background="#1f2937"; e.currentTarget.style.color="#6b7280"; }}
+                        >{showAll === p.name ? "HIDE ALL TRAININGS" : "VIEW ALL TRAININGS"}</button>
+                      </div>
+
+                      {showAll === p.name && (
+                        <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #1f2937"}}>
+                          {[0,1,2].map(gi => {
+                            const grpCols = COLS.filter(c => c.g === gi);
+                            if (grpCols.length === 0) return null;
+                            return (
+                              <div key={gi} style={{marginBottom: gi < 2 ? 14 : 0}}>
+                                <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:GRP_COLORS[gi],
+                                  fontFamily:mono,marginBottom:6}}>
+                                  {GRP_LABELS[gi]}
+                                </div>
+                                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))",gap:6}}>
+                                  {grpCols.map(c => {
+                                    const val = p.t[c.k];
+                                    const d = daysDiff(val);
+                                    const noDate = !val || val === "n/a" || val === "\u2014";
+                                    let dotColor = "#22c55e";
+                                    if (noDate) dotColor = "#374151";
+                                    else if (d < 0) dotColor = "#dc2626";
+                                    else if (d <= 30) dotColor = "#f97316";
+                                    else if (d <= 60) dotColor = "#eab308";
+                                    return (
+                                      <div key={c.k} style={{
+                                        display:"flex",alignItems:"center",justifyContent:"space-between",
+                                        padding:"5px 10px",background:"#0f172a",borderRadius:4,
+                                        borderLeft:`2px solid ${dotColor}`,
+                                      }}>
+                                        <span style={{fontSize:12,fontFamily:mono,color:"#9ca3af",fontWeight:600}}>{c.f}</span>
+                                        <span style={{fontSize:12,fontFamily:mono,color: noDate ? "#374151" : d <= 60 ? dotColor : "#6b7280",
+                                          fontWeight:700}}>{noDate ? "\u2014" : val}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div style={{marginTop:16,padding:"14px 18px",background:"#111827",borderRadius:6,border:"1px solid #1f2937"}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:"#374151",fontFamily:mono,marginBottom:8}}>ACRONYMS</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"6px 20px",fontSize:12,color:"#4b5563"}}>
+                {DATA.acronyms.training.map(([a,f])=>(
+                  <span key={a}>
+                    <span style={{color:"#6b7280",fontWeight:700,fontFamily:mono}}>{a}</span>
+                    <span style={{marginLeft:4}}>{f}</span>
+                  </span>
+                ))}
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"6px 20px",fontSize:12,color:"#4b5563",marginTop:8,paddingTop:8,borderTop:"1px solid #1f2937"}}>
+                {DATA.acronyms.general.map(([a,f])=>(
+                  <span key={a}>
+                    <span style={{color:"#6b7280",fontWeight:700,fontFamily:mono}}>{a}</span>
+                    <span style={{marginLeft:4}}>{f}</span>
+                  </span>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:20,fontSize:11,color:"#374151",fontFamily:mono,marginTop:8,paddingTop:8,borderTop:"1px solid #1f2937"}}>
+                <span>16 training items tracked per person</span>
+                <span>Items &gt;60 days out are hidden</span>
+                <span>Hover pill for details, click row to expand</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [data, setData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [needsAuth, setNeedsAuth] = useState(false);
+
+      useEffect(() => {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) {
+          setNeedsAuth(true);
+          setLoading(false);
+          return;
+        }
+        fetchData(stored)
+          .then(d => { setData(d); setLoading(false); })
+          .catch(() => {
+            localStorage.removeItem(STORAGE_KEY);
+            setNeedsAuth(true);
+            setLoading(false);
+          });
+      }, []);
+
+      if (loading) return <div className="loading-overlay">Loading...</div>;
+      if (needsAuth) return <AuthScreen onAuth={(d) => { setData(d); setNeedsAuth(false); }} />;
+      return <Dashboard data={data} />;
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
