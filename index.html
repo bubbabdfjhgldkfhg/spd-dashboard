@@ -311,7 +311,7 @@
                           boxShadow:"0 0 6px #0ea5e922",
                         }}>{"\u{1F4C5}"} {a.type} appt {a.date}</span>
                       ))}
-                      {p.flags.map((f,i) => (
+                      {p.flags.filter(f => !(p.srp && f.startsWith(p.srp.type))).map((f,i) => (
                         <span key={i} style={{fontSize:11,padding:"3px 8px",borderRadius:3,
                           background:"#7c3aed12",color:"#a78bfa",border:"1px solid #7c3aed33",
                           fontFamily:mono,fontWeight:600,lineHeight:"18px"}}>{f}</span>
