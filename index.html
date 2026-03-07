@@ -234,6 +234,25 @@
             </div>
           </div>
 
+          {(() => {
+            const odByCol = COLS.map(c => ({
+              label: c.l,
+              full: c.f,
+              count: PEOPLE.filter(p => { const d = daysDiff(p.t[c.k]); return d !== null && d < 0; }).length
+            })).filter(x => x.count > 0).sort((a,b) => b.count - a.count).slice(0,3);
+            return odByCol.length > 0 ? (
+              <div style={{padding:"10px 32px",background:"#111827",borderBottom:"1px solid #1f2937",display:"flex",gap:18,alignItems:"center"}}>
+                <span style={{fontSize:11,color:"#6b7280",fontFamily:mono,fontWeight:700,letterSpacing:"0.08em"}}>TOP OVERDUE</span>
+                {odByCol.map(x => (
+                  <span key={x.label} style={{fontSize:12,fontFamily:mono,display:"flex",alignItems:"center",gap:5}}>
+                    <span style={{color:"#fca5a5",fontWeight:700}}>{x.count}</span>
+                    <span style={{color:"#9ca3af"}}>{x.full}</span>
+                  </span>
+                ))}
+              </div>
+            ) : null;
+          })()}
+
           <div style={{padding:"20px 32px"}}>
             {sorted.map((p,ri) => {
               const items = getActionable(p);
