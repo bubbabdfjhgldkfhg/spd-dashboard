@@ -248,8 +248,8 @@
               count: PEOPLE.filter(p => { const d = daysDiff(p.t[c.k]); return d !== null && d < 0; }).length
             })).filter(x => x.count > 0).sort((a,b) => b.count - a.count).slice(0,3);
             return odByCol.length > 0 ? (
-              <div style={{padding:"10px 32px",background:"#111827",borderBottom:"1px solid #1f2937",display:"flex",gap:18,alignItems:"center"}}>
-                <span style={{fontSize:11,color:"#6b7280",fontFamily:mono,fontWeight:700,letterSpacing:"0.08em"}}>TOP OVERDUE</span>
+              <div style={{padding:"12px 32px",background:"linear-gradient(90deg,#1a0a0a,#111827)",borderBottom:"1px solid #dc262644",borderTop:"1px solid #dc262622",display:"flex",gap:18,alignItems:"center"}}>
+                <span style={{fontSize:11,color:"#dc2626",fontFamily:mono,fontWeight:700,letterSpacing:"0.12em"}}>TOP OVERDUE</span>
                 {odByCol.map(x => (
                   <span key={x.label} onClick={() => {
                     const id = ++flashRef.current;
@@ -351,7 +351,12 @@
                           boxShadow:"0 0 6px #0ea5e922",
                         }}>{"\u{1F4C5}"} {a.type} appt {a.date}</span>
                       ))}
-                      {p.flags.filter(f => !(p.srp && f.startsWith(p.srp.type))).map((f,i) => (
+                      {(() => { const d = daysDiff(p.t.ptDue); return d !== null && d < 0 ? (
+                        <span style={{fontSize:11,padding:"3px 8px",borderRadius:3,
+                          background:"#dc262618",color:"#fca5a5",border:"1px solid #dc262644",
+                          fontFamily:mono,fontWeight:600,lineHeight:"18px"}}>PT not current</span>
+                      ) : null; })()}
+                      {p.flags.filter(f => f !== "PT not current" && !(p.srp && f.startsWith(p.srp.type))).map((f,i) => (
                         <span key={i} style={{fontSize:11,padding:"3px 8px",borderRadius:3,
                           background:"#7c3aed12",color:"#a78bfa",border:"1px solid #7c3aed33",
                           fontFamily:mono,fontWeight:600,lineHeight:"18px"}}>{f}</span>
