@@ -14,6 +14,11 @@
       100% { background: transparent; }
     }
     .row-flash { animation: rowFlash 2s ease-out; }
+    @keyframes rowFlashOrange {
+      0% { background: #f9731666; }
+      100% { background: transparent; }
+    }
+    .row-flash-orange { animation: rowFlashOrange 2s ease-out; }
     .auth-overlay {
       position: fixed; inset: 0; z-index: 1000;
       background: #0a0e1a; display: flex; align-items: center; justify-content: center;
@@ -142,6 +147,7 @@
       const [tipKey, setTipKey] = useState(null);
       const [showAll, setShowAll] = useState(null);
       const [flashCol, setFlashCol] = useState(null);
+      const [flashW30, setFlashW30] = useState(null);
       const flashRef = useRef(0);
 
       const TODAY = useMemo(() => new Date(DATA.referenceDate + "T00:00:00"), [DATA]);
@@ -270,7 +276,11 @@
                     <React.Fragment>
                       <span style={{borderLeft:"1px solid #374151",height:16,marginLeft:4}} />
                       <span style={{fontSize:11,color:"#f97316",fontFamily:mono,fontWeight:700,letterSpacing:"0.12em"}}>&lt;30D</span>
-                      <span style={{fontSize:12,fontFamily:mono,display:"flex",alignItems:"center",gap:5}}>
+                      <span onClick={() => {
+                        const id = ++flashRef.current;
+                        setFlashW30(top.label);
+                        setTimeout(() => { if(flashRef.current === id) setFlashW30(null); }, 2100);
+                      }} style={{fontSize:12,fontFamily:mono,display:"flex",alignItems:"center",gap:5,cursor:"pointer"}}>
                         <span style={{color:"#fdba74",fontWeight:700}}>{top.count}</span>
                         <span style={{color:"#9ca3af"}}>{top.full}</span>
                       </span>
@@ -290,11 +300,15 @@
 
               return (
                 <div key={p.name+flashRef.current} className={(() => {
-                    if (!flashCol) return "";
-                    const col = COLS.find(c => c.l === flashCol);
-                    if (!col) return "";
-                    const d = daysDiff(p.t[col.k]);
-                    return d !== null && d < 0 ? "row-flash" : "";
+                    if (flashCol) {
+                      const col = COLS.find(c => c.l === flashCol);
+                      if (col) { const d = daysDiff(p.t[col.k]); if (d !== null && d < 0) return "row-flash"; }
+                    }
+                    if (flashW30) {
+                      const col = COLS.find(c => c.l === flashW30);
+                      if (col) { const d = daysDiff(p.t[col.k]); if (d !== null && d >= 0 && d <= 30) return "row-flash-orange"; }
+                    }
+                    return "";
                   })()} style={{marginBottom:6}}>
                   <div
                     onClick={() => setSel(isOpen ? null : p.name)}
