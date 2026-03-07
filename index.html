@@ -260,6 +260,23 @@
                     <span style={{color:"#9ca3af"}}>{x.full}</span>
                   </span>
                 ))}
+                {(() => {
+                  const w30ByCol = COLS.map(c => ({
+                    label: c.l, full: c.f,
+                    count: PEOPLE.filter(p => { const d = daysDiff(p.t[c.k]); return d !== null && d >= 0 && d <= 30; }).length
+                  })).filter(x => x.count > 0).sort((a,b) => b.count - a.count);
+                  const top = w30ByCol[0];
+                  return top ? (
+                    <React.Fragment>
+                      <span style={{borderLeft:"1px solid #374151",height:16,marginLeft:4}} />
+                      <span style={{fontSize:11,color:"#f97316",fontFamily:mono,fontWeight:700,letterSpacing:"0.12em"}}>&lt;30D</span>
+                      <span style={{fontSize:12,fontFamily:mono,display:"flex",alignItems:"center",gap:5}}>
+                        <span style={{color:"#fdba74",fontWeight:700}}>{top.count}</span>
+                        <span style={{color:"#9ca3af"}}>{top.full}</span>
+                      </span>
+                    </React.Fragment>
+                  ) : null;
+                })()}
               </div>
             ) : null;
           })()}
