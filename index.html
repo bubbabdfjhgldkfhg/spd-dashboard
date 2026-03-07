@@ -10,12 +10,10 @@
   <style>
     body { margin: 0; }
     @keyframes rowFlash {
-      0%, 100% { background: transparent; }
-      25% { background: #dc262633; }
-      50% { background: transparent; }
-      75% { background: #dc262633; }
+      0% { background: #dc262666; }
+      100% { background: transparent; }
     }
-    .row-flash { animation: rowFlash 1.2s ease; }
+    .row-flash { animation: rowFlash 2s ease-out; }
     .auth-overlay {
       position: fixed; inset: 0; z-index: 1000;
       background: #0a0e1a; display: flex; align-items: center; justify-content: center;
@@ -256,7 +254,7 @@
                   <span key={x.label} onClick={() => {
                     const id = ++flashRef.current;
                     setFlashCol(x.label);
-                    setTimeout(() => { if(flashRef.current === id) setFlashCol(null); }, 1300);
+                    setTimeout(() => { if(flashRef.current === id) setFlashCol(null); }, 2100);
                   }} style={{fontSize:12,fontFamily:mono,display:"flex",alignItems:"center",gap:5,cursor:"pointer"}}>
                     <span style={{color:"#fca5a5",fontWeight:700}}>{x.count}</span>
                     <span style={{color:"#9ca3af"}}>{x.full}</span>
@@ -274,7 +272,7 @@
               const allClear = items.length === 0 && p.flags.length === 0;
 
               return (
-                <div key={p.name+(flashCol||"")} className={(() => {
+                <div key={p.name+flashRef.current} className={(() => {
                     if (!flashCol) return "";
                     const col = COLS.find(c => c.l === flashCol);
                     if (!col) return "";
