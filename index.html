@@ -9,6 +9,13 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     body { margin: 0; }
+    @keyframes rowFlash {
+      0%, 100% { background: transparent; }
+      25% { background: #dc262633; }
+      50% { background: transparent; }
+      75% { background: #dc262633; }
+    }
+    .row-flash { animation: rowFlash 1.2s ease; }
     .auth-overlay {
       position: fixed; inset: 0; z-index: 1000;
       background: #0a0e1a; display: flex; align-items: center; justify-content: center;
@@ -55,7 +62,7 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useMemo, useEffect, useCallback } = React;
+    const { useState, useMemo, useEffect, useCallback, useRef } = React;
 
     const STORAGE_KEY = "spd_gh_token";
     const REPO_OWNER = "bubbabdfjhgldkfhg";
@@ -136,6 +143,8 @@
       const [sel, setSel] = useState(null);
       const [tipKey, setTipKey] = useState(null);
       const [showAll, setShowAll] = useState(null);
+      const [flashCol, setFlashCol] = useState(null);
+      const flashRef = useRef(0);
 
       const TODAY = useMemo(() => new Date(DATA.referenceDate + "T00:00:00"), [DATA]);
 
@@ -244,7 +253,11 @@
               <div style={{padding:"10px 32px",background:"#111827",borderBottom:"1px solid #1f2937",display:"flex",gap:18,alignItems:"center"}}>
                 <span style={{fontSize:11,color:"#6b7280",fontFamily:mono,fontWeight:700,letterSpacing:"0.08em"}}>TOP OVERDUE</span>
                 {odByCol.map(x => (
-                  <span key={x.label} style={{fontSize:12,fontFamily:mono,display:"flex",alignItems:"center",gap:5}}>
+                  <span key={x.label} onClick={() => {
+                    const id = ++flashRef.current;
+                    setFlashCol(x.label);
+                    setTimeout(() => { if(flashRef.current === id) setFlashCol(null); }, 1300);
+                  }} style={{fontSize:12,fontFamily:mono,display:"flex",alignItems:"center",gap:5,cursor:"pointer"}}>
                     <span style={{color:"#fca5a5",fontWeight:700}}>{x.count}</span>
                     <span style={{color:"#9ca3af"}}>{x.full}</span>
                   </span>
@@ -261,7 +274,13 @@
               const allClear = items.length === 0 && p.flags.length === 0;
 
               return (
-                <div key={p.name} style={{marginBottom:6}}>
+                <div key={p.name+(flashCol||"")} className={(() => {
+                    if (!flashCol) return "";
+                    const col = COLS.find(c => c.l === flashCol);
+                    if (!col) return "";
+                    const d = daysDiff(p.t[col.k]);
+                    return d !== null && d < 0 ? "row-flash" : "";
+                  })()} style={{marginBottom:6}}>
                   <div
                     onClick={() => setSel(isOpen ? null : p.name)}
                     style={{
